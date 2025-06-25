@@ -1,4 +1,4 @@
-# README - Dashboard AEROBICOVID para Jornada da Ciencia Aberta- 2025
+# Tutorial dashboard AEROBICOVID para Jornada da Ciencia Aberta- 2025
 
 ## 📊 Sobre o Projeto
 
