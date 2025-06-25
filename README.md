@@ -106,6 +106,6 @@ elisangelalizzi@gmail.com
 Se usar este dashboard em pesquisas, por favor cite como:
 
 ```
-Lizzi, E. (2023). Dashboard AEROBICOVID - GEEPESC-EEFERP-USP, Jornada da Ciencia Aberta-2025. GitHub repository. 
-https://github.com/elisangelalizzi/dashboard-aerobicovid
+Lizzi, E. (2025). Dashboard AEROBICOVID - GEEPESC-EEFERP-USP, Jornada da Ciencia Aberta-2025. GitHub repository. 
+https://github.com/elisangelalizzi/ciencia_aberta
 ```
