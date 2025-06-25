@@ -1,0 +1,332 @@
+---
+title: "Jornada da Ciencia Aberta Dashboard - AEROBICOVID"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+
+library(flexdashboard)
+library(tidyverse)
+library(gt)
+library(ggplot2)
+library(plotly)
+library(broom)
+library(DT)
+
+
+# Definindo a pasta de trabalho
+setwd("/Users/elisangelalizzi/Desktop/Ciencia Aberta USP/Software Replicável")
+
+# Leitura dos dados
+# Carregar os dados
+dados =read.csv2("Dados.csv") 
+head(dados)
+names(dados)
+
+# Ajustes de tipo
+dados$Sexo <- factor(dados$Sex, labels = c("Masculino", "Feminino"))
+dados$Classificacao <- as.factor(dados$Classific_AEROBICOVID_grav)
+
+```
+
+# Painel interativo do AEROBICOVID -GEEPESC-EEFERP-USP
+### <font size="4">**Painel interativo do AEROBICOVID -GEEPESC-EEFERP-USP**</font>
+
+Este painel é um produto da **Palestra sobre software replicável**, produzido para Jornada da Ciência Aberta com abordagem didatico pedagógico, para uso do programa R para gerar relatório automatizados com informações de pesquisa e visualização de dados, responsável Profa. Dra. Elisangela Lizzi
+
+
+## Row {data-height=60}
+
+### <font size="4">**AEROBICOVID, recorte transversal- analítico**</font>
+
+**Visualização de dados** com organização das informações no dashborad interativo, usando puramente linguagem R.
+
+
+
+## Row
+
+### Medidor de Pico de Frequência Cardíaca
+
+```{r}
+library(dplyr)
+library(flexdashboard)
+
+max_freq <- max(dados$HRpeak, na.rm = TRUE)
+
+gauge(max_freq, min = 50, max = 200, label = "Máx FC (bpm)", gaugeSectors(
+  success = c(50, 120), warning = c(120, 160), danger = c(160, 200)
+))
+```
+
+
+
+```{r}
+#contagens
+sexo_counts <- dados %>% count(Sexo)
+masc=sexo_counts$n[sexo_counts$Sexo == "Masculino"]
+fem = sexo_counts$n[sexo_counts$Sexo == "Feminino"]
+masculino=as.numeric(masc)
+feminino=as.numeric(fem)
+```
+
+
+### Participantes Sexo Masculino
+
+```{r}
+#caixa número do sexo masculino
+valueBox(masculino,
+  caption = "Participantes Masculinos", icon = "fa-mars",color = "primary")
+```
+
+### Participantes Sexo Feminino
+```{r}
+
+#caixa número do sexo feminino
+valueBox(feminino,caption = "Participantes Femininos", icon = "fa-venus",color = "info")
+
+```
+
+
+## Row 
+
+#### <font size="4">**Distribuição das Categorias AEROBICOVID **</font>
+
+```{r}
+# Criar um dataframe com contagens (necessário para adicionar rótulos)
+dados_plot <- dados %>%
+  count(Classificacao)
+
+# Gráfico com ggplot
+grafico <- ggplot(dados_plot, aes(x = Classificacao, y = n)) +
+  geom_bar(stat = "identity", fill = "gray80", color = "black") +
+  
+  labs(x = "Categoria AEROBICOVID", y = "Frequência") +
+  theme_minimal()
+
+# Tornar interativo com plotly
+ggplotly(grafico)
+
+```
+
+
+#### <font size="4">**Classicações AEROBICOVID **</font>
+
+```{r}
+
+
+# Calcular totais gerais classificacao
+dados_plot <- dados %>%
+  count(Classificacao)
+
+#table(dados$Classificacao)
+
+
+# Criar o data.frame
+dados2 <- data.frame(
+  Classif = c(1, 2, 3, 4),
+  Contagem = c(16, 50, 10, 8)
+)
+
+# Adicionar rótulos e calcular percentual
+dados3 <- dados2 %>%
+  mutate(
+    Gravidade = case_when(
+      Classif == 1 ~ "Leve",
+      Classif == 2 ~ "Moderada",
+      Classif == 3 ~ "Grave",
+      Classif == 4 ~ "Crítico"
+    ),
+    Percentual = round(Contagem / sum(Contagem) * 100, 1)
+  ) %>%
+  select(Gravidade, Contagem, Percentual)
+
+# Criar a tabela gt
+tabela <- dados3 %>%
+  gt() %>%
+  tab_header(
+    title = "Classificação AEROBICOVID por Gravidade",
+    subtitle = "Distribuição dos casos"
+  ) %>%
+  cols_label(
+    Gravidade = "Gravidade",
+    Contagem = "Casos (n)",
+    Percentual = "%"
+  ) %>%
+  fmt_number(
+    columns = c(Contagem),
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = c(Percentual),
+    decimals = 1
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_options(
+    table.width = pct(80),
+    table.align = "center"
+  )
+
+# Mostrar a tabela
+tabela
+
+```
+
+## Row
+
+#### VO2 Relativo por Sexo
+
+```{r}
+
+# Gráfico com ggplot
+grafico_box = ggplot(dados, aes(x = Sexo, y = Relative.VO2, fill = Sexo)) +
+  geom_boxplot(notch = TRUE, color = "black", fill = "gray80") +
+  labs(
+    title = "VO2 Relativo por Sexo",
+    x = "Sexo",
+    y = "VO2 (ml/kg/min)"
+  ) +
+  theme_minimal()
+
+# Converter para gráfico interativo
+ggplotly(grafico_box)
+
+```
+
+#### Idade x BMI colorido por Classificação
+
+```{r}
+# Calcular correlação de Pearson entre Age e BMI
+correlacao <- cor.test(dados$Age, dados$BMI, method = "pearson")
+
+# Extrair o valor do coeficiente e p-valor
+coef_cor <- round(correlacao$estimate, 3)  # Arredonda para 3 casas decimais
+p_valor <- ifelse(correlacao$p.value < 0.001, 
+                 "< 0.001", 
+                 round(correlacao$p.value, 3))
+
+# Criar string para o subtítulo
+subtitulo <- paste("Correlação de Pearson: r =", coef_cor, 
+                  ", p-valor =", p_valor)
+
+# Criar o gráfico com o subtítulo
+ggplot(dados, aes(x = Age, y = BMI, color = Classificacao)) +
+  geom_point(size = 3, alpha = 0.7) +
+  labs(title = "Idade vs BMI por Classificação AEROBICOVID",
+       subtitle = subtitulo) +  # Adiciona o subtítulo com a correlação
+  theme_minimal() +
+  theme(plot.subtitle = element_text(size = 10, color = "gray30"))  # Estilo do subtítulo
+```
+
+
+
+
+
+
+## Row {data-height=650}
+
+### Banco de Dados Completo
+
+<div style="text-align: center; margin-bottom: 15px;">
+<h4>Banco de dados organizado para download</h4>
+<p>Tabela analítica usada nesse dashboard: O banco de dados estruturado com variáveis organizadas matricialmente em linhas e colunas com algumas variáveis para construção desse exemplo.</p>
+</div>
+
+```{r}
+datatable(
+  dados,
+  options = list(
+    scrollX = TRUE,          # Rolagem horizontal
+    scrollY = "500px",       # Altura fixa com rolagem vertical
+    scrollCollapse = TRUE,
+    paging = FALSE,         # Desativa paginação
+    dom = 't'               # Mostra apenas a tabela (sem controles extras)
+  ),
+  rownames = FALSE,
+  caption = "Dados completos para consulta e download"
+)
+```
+
+
+
+
+
+
+
+
+
+
+## Row {data-height=200}
+
+### Sobre os Dados
+<div style="text-align: center; margin: 20px; font-size: 16px;">
+<strong>Modelo Generalizado para comparação do V02 relativo em relação a classificação da gravidade, sexo, imc e idade. Sendo organizada as estimativas do modelo e gráficos de resíduos. 
+Usando variáveis confundidores e organização dos achados com pacote GT.
+</div>
+
+
+#### Estimativa do Modelos
+
+```{r}
+
+# Contraste ortogonal para Sexo
+
+
+modelo <- glm(Relative.VO2 ~ factor(Classificacao) + BMI + factor(Sexo) + Age, data = dados, family = gaussian())
+
+# Resultado com IC
+resumo <- tidy(modelo, conf.int = TRUE)
+
+# Tabela com GT
+resumo %>%
+  gt() %>%
+  tab_header(
+    title = "Modelo Linear Generalizado",
+    subtitle = "V02 relativo=Classificação AEROBICOVID + BMI + Sexo + Idade"
+  ) %>%
+  fmt_number(columns = c(estimate, std.error,statistic, p.value, conf.low, conf.high), decimals = 2) %>%
+  cols_label(
+    term = "Variável",
+    estimate = "Estimativa",
+    std.error = "Erro Padrão",
+    statistic = "Estatística t",
+    p.value = "p-valor",
+    conf.low = "L.I.",
+    conf.high = "L.S."
+  )
+
+```
+
+#### Analise de residuos
+```{r}
+# Análise de resíduos
+residuos <- residuals(modelo)
+
+# Histograma
+ggplot(data.frame(residuos), aes(x = residuos)) +
+  geom_histogram(fill = "gray80", color = "black", bins = 20) +
+  labs(title = "Histograma dos Resíduos", x = "Resíduo", y = "Frequência") +
+  theme_minimal()
+
+```
+#### Analise de residuos
+```{r}
+# Análise de resíduos
+residuos <- residuals(modelo)
+# QQ-plot
+qqnorm(residuos, main = "QQ-plot dos Resíduos")
+qqline(residuos, col = "red", lwd = 2)
+```
+
+
+
+
+
+
+
+
